@@ -1,9 +1,12 @@
 import React from 'react'
 import type { TripPin } from '../scene/data/samplePins'
+import { useAuth } from '../auth/AuthProvider'
+import { AuthModal } from './auth/AuthModal'
 
 type Props = {
   userEmail: string | null
   activePin: TripPin | null
+  isGuest: boolean
 }
 
 const mockData = {
@@ -16,6 +19,12 @@ const mockData = {
     meta: '14 photos • 186 km route',
   },
   unlockNext: 'Add 1 more hiking trip to earn Trail Explorer',
+}
+
+type BottomActionProps = {
+  children: React.ReactNode
+  href?: string
+  onClick?: () => void
 }
 
 function glassCardStyle(width?: number): React.CSSProperties {
@@ -31,7 +40,89 @@ function glassCardStyle(width?: number): React.CSSProperties {
   }
 }
 
-export function HomeOverlay({ userEmail, activePin }: Props) {
+function glassNavButtonStyle(): React.CSSProperties {
+  return {
+    padding: '10px 14px',
+    borderRadius: 16,
+    background: 'rgba(6, 23, 54, 0.45)',
+    border: '1px solid rgba(148, 163, 184, 0.22)',
+    color: '#fff',
+    pointerEvents: 'auto',
+    textDecoration: 'none',
+    cursor: 'pointer',
+  }
+}
+
+function BottomAction({ children, href, onClick }: BottomActionProps) {
+  const [isHover, setIsHover] = React.useState(false)
+
+  const style: React.CSSProperties = {
+    background: 'transparent',
+    border: 'none',
+    borderRadius: 20,
+    padding: '18px 16px',
+    textAlign: 'center',
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: isHover ? 700 : 500,
+    textDecoration: isHover ? 'underline' : 'none',
+    cursor: 'pointer',
+    pointerEvents: 'auto',
+    transition: 'font-weight 120ms ease, text-decoration 120ms ease',
+  }
+
+  if (href) {
+    return (
+      <a
+        href={href}
+        style={style}
+        onMouseEnter={() => setIsHover(true)}
+        onMouseLeave={() => setIsHover(false)}
+      >
+        {children}
+      </a>
+    )
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      style={style}
+      onMouseEnter={() => setIsHover(true)}
+      onMouseLeave={() => setIsHover(false)}
+    >
+      {children}
+    </button>
+  )
+}
+
+export function HomeOverlay({ userEmail, activePin, isGuest }: Props) {
+  const {
+    user,
+    profile,
+    isAuthModalOpen,
+    openAuthModal,
+    closeAuthModal,
+    signOut,
+  } = useAuth()
+
+  const isLoggedIn = !isGuest && !!user
+  const displayName = profile?.username || userEmail || 'Guest'
+
+  const bottomActions = isLoggedIn
+    ? [
+      { label: 'Continue journey', type: 'button' as const },
+      { label: 'Add a trip', type: 'button' as const },
+      { label: 'Explore map', href: '#', type: 'link' as const },
+      { label: 'View achievements', href: '#', type: 'link' as const },
+    ]
+    : [
+      { label: 'Start your journey', type: 'button' as const },
+      { label: 'Add a trip', type: 'button' as const },
+      { label: 'Explore map', href: '#', type: 'link' as const },
+      { label: 'View achievements', href: '#', type: 'link' as const },
+    ]
+
   return (
     <div
       style={{
@@ -122,33 +213,17 @@ export function HomeOverlay({ userEmail, activePin }: Props) {
             Insights
           </a>
 
-          {userEmail ? (
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: 16,
-                background: 'rgba(6, 23, 54, 0.45)',
-                border: '1px solid rgba(148, 163, 184, 0.22)',
-                pointerEvents: 'auto',
-              }}
-            >
-              {userEmail}
-            </div>
+          {isLoggedIn ? (
+            <>
+              <div style={glassNavButtonStyle()}>{displayName}</div>
+              <button onClick={signOut} style={glassNavButtonStyle()}>
+                Sign out
+              </button>
+            </>
           ) : (
-            <a
-              href="/login"
-              style={{
-                padding: '10px 14px',
-                borderRadius: 16,
-                background: 'rgba(6, 23, 54, 0.45)',
-                border: '1px solid rgba(148, 163, 184, 0.22)',
-                color: '#fff',
-                textDecoration: 'none',
-                pointerEvents: 'auto',
-              }}
-            >
+            <button onClick={openAuthModal} style={glassNavButtonStyle()}>
               Get started
-            </a>
+            </button>
           )}
         </nav>
       </header>
@@ -262,7 +337,7 @@ export function HomeOverlay({ userEmail, activePin }: Props) {
           backdropFilter: 'blur(18px)',
           WebkitBackdropFilter: 'blur(18px)',
           boxShadow: '0 10px 40px rgba(2, 8, 23, 0.28)',
-          padding: 12,
+          padding: 6,
           display: 'grid',
           gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
           gap: 8,
@@ -270,29 +345,31 @@ export function HomeOverlay({ userEmail, activePin }: Props) {
           pointerEvents: 'none',
         }}
       >
-        {[
-          { label: 'Start your journey', href: '/login', active: true },
-          { label: 'Add a trip', href: '/login' },
-          { label: 'Explore map', href: '#' },
-          { label: 'View achievements', href: '#' },
-        ].map((item) => (
-          <a
-            key={item.label}
-            href={item.href}
-            style={{
-              textDecoration: 'none',
-              color: item.active ? '#fff' : 'rgba(255,255,255,0.78)',
-              background: item.active ? 'rgba(255,255,255,0.06)' : 'transparent',
-              borderRadius: 20,
-              padding: '18px 16px',
-              textAlign: 'center',
-              fontWeight: item.active ? 700 : 500,
-              pointerEvents: 'auto',
-            }}
-          >
-            {item.label}
-          </a>
-        ))}
+        {bottomActions.map((item) => {
+          if (item.type === 'link') {
+            return (
+              <BottomAction key={item.label} href={item.href}>
+                {item.label}
+              </BottomAction>
+            )
+          }
+
+          return (
+            <BottomAction
+              key={item.label}
+              onClick={() => {
+                if (!isLoggedIn) {
+                  openAuthModal()
+                  return
+                }
+
+                // Keep placeholder for future logged-in actions.
+              }}
+            >
+              {item.label}
+            </BottomAction>
+          )
+        })}
       </div>
 
       {activePin ? (
@@ -320,6 +397,8 @@ export function HomeOverlay({ userEmail, activePin }: Props) {
           </div>
         </div>
       ) : null}
+
+      <AuthModal open={isAuthModalOpen} onClose={closeAuthModal} />
     </div>
   )
 }
