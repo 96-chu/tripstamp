@@ -7,9 +7,8 @@ export function useGlobePreset() {
   const vp = useViewport();
 
   return useMemo(() => {
-    const preset = getGlobePreset(vp.shortSide, vp.isTouch);
+    const preset = getGlobePreset(vp.width, vp.height, vp.isTouch);
 
-    // Assume r3f-globe default sphere radius ~100 => diameter ~200 world units.
     const sphereDiameter = 200 * preset.worldScale;
 
     const cameraZ = getCameraZForSphereFit({
@@ -22,9 +21,11 @@ export function useGlobePreset() {
       maxZ: 420,
     });
 
-    const minDistance = cameraZ * 0.7;
-    const maxDistance = cameraZ * 1.9;
-
-    return { ...preset, cameraZ, minDistance, maxDistance };
-  }, [vp.height, vp.shortSide, vp.isTouch]);
+    return {
+      ...preset,
+      cameraZ,
+      minDistance: cameraZ,
+      maxDistance: cameraZ,
+    };
+  }, [vp.width, vp.height, vp.isTouch]);
 }

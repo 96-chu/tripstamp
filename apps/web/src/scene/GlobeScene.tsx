@@ -1,102 +1,116 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
-import type { Group } from "three";
-import R3fGlobe from 'r3f-globe';
-import type { TripPin } from './data/samplePins';
-import { pinPalette } from './data/palette';
-import { CloudsLayer } from './layers/CloudsLayer';
-import { useGlobePreset } from '../responsive/useGlobePreset';
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { Html, OrbitControls } from '@react-three/drei'
+import type { Group } from "three"
+import R3fGlobe from 'r3f-globe'
+import type { TripPin } from './data/samplePins'
+import { pinPalette } from './data/palette'
+import { CloudsLayer } from './layers/CloudsLayer'
+import { MilkywayPlane } from './layers/MilkywayPlane'
+import { TwinklingStars } from './layers/TwinklingStars'
+import { ShootingStars } from './layers/ShootingStars'
+import { useGlobePreset } from '../responsive/useGlobePreset'
 // import { textures } from './textures';
-import { getTextureUrls, type TextureUrls } from "./textures";
+import { getTextureUrls, type TextureUrls } from "./textures"
 
 type Props = {
-  pins: TripPin[];
-  onPinSelect?: (pin: TripPin | null) => void;
-};
+  pins: TripPin[]
+  onPinSelect?: (pin: TripPin | null) => void
+}
 
 function preloadImage(url: string) {
   return new Promise<void>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
-  });
+    const img = new Image()
+    img.onload = () => resolve()
+    img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
+    img.src = url
+  })
 }
 
 function SceneContent({ pins, onPinSelect }: Props) {
-  const preset = useGlobePreset();
+  const preset = useGlobePreset()
 
-  const globeRef = useRef<any>(null);
-  const controlsRef = useRef<any>(null);
-  const worldRef = useRef<Group>(null);
+  const globeRef = useRef<any>(null)
+  const controlsRef = useRef<any>(null)
+  const worldRef = useRef<Group>(null)
 
-  const [activePin, setActivePin] = useState<TripPin | null>(null);
-  const pointsData = useMemo(() => pins, [pins]);
+  const [activePin, setActivePin] = useState<TripPin | null>(null)
+  const pointsData = useMemo(() => pins, [pins])
 
-  const tRef = useRef<number>(0);
+  const tRef = useRef<number>(0)
 
-  const [isInteracting, setIsInteracting] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false)
 
-  const [textureUrls, setTextureUrls] = useState<TextureUrls | null>(null);
-  const [isReady, setIsReady] = useState(false);
-  const [loadError, setLoadError] = useState<string>("");
+  const [textureUrls, setTextureUrls] = useState<TextureUrls | null>(null)
+  const [isReady, setIsReady] = useState(false)
+  const [loadError, setLoadError] = useState<string>("")
 
   useEffect(() => {
     let alive = true;
 
     (async () => {
       try {
-        setIsReady(false);
-        setLoadError("");
+        setIsReady(false)
+        setLoadError("")
 
-        const urls = await getTextureUrls();
+        const urls = await getTextureUrls()
 
         // Pre-download both images before showing the globe.
-        await Promise.all([preloadImage(urls.earthDayUrl), preloadImage(urls.earthCloudsUrl)]);
+        await Promise.all([preloadImage(urls.earthDayUrl), preloadImage(urls.earthCloudsUrl), preloadImage(urls.starMilkywayUrl)])
 
-        if (!alive) return;
+        if (!alive) return
 
-        setTextureUrls(urls);
-        setIsReady(true);
+        setTextureUrls(urls)
+        setIsReady(true)
       } catch (e) {
-        if (!alive) return;
-        setLoadError(e instanceof Error ? e.message : "Failed to load textures.");
+        if (!alive) return
+        setLoadError(e instanceof Error ? e.message : "Failed to load textures.")
       }
-    })();
+    })()
 
     return () => {
-      alive = false;
-    };
-  }, []);
+      alive = false
+    }
+  }, [])
 
   useFrame((_, delta) => {
-    if (isInteracting) return;
+    if (isInteracting) return
 
     if (worldRef.current) {
-      tRef.current += delta;
-      worldRef.current.position.y = Math.sin(tRef.current * 0.6) * 1.2;
+      tRef.current += delta
+      worldRef.current.position.y = Math.sin(tRef.current * 0.6) * 1.2
     }
-  });
+  })
 
   function handleClick(layer: string, elementData: any) {
-    if (layer !== "points" || !elementData) return;
+    if (layer !== "points" || !elementData) return
 
-    const pin = elementData as TripPin;
-    setActivePin(pin);
-    onPinSelect?.(pin);
+    const pin = elementData as TripPin
+    setActivePin(pin)
+    onPinSelect?.(pin)
   }
 
-  const globeRadius = 100;
+  const globeRadius = 100
 
   return (
     <>
       <ambientLight intensity={0.6} />
       <directionalLight position={[3, 2, 1]} intensity={1.2} />
 
+      {
+        textureUrls && (
+          <>
+            <MilkywayPlane textureUrl={textureUrls.starMilkywayUrl} driftSpeed={0.002} />
+            <TwinklingStars />
+            <ShootingStars chancePerSecond={0.55} />
+          </>
+        )
+      }
+
       <OrbitControls
         ref={controlsRef}
         enablePan={false}
+        enableZoom={false}
         enableDamping
         dampingFactor={0.08}
         minDistance={preset.minDistance}
@@ -106,8 +120,8 @@ function SceneContent({ pins, onPinSelect }: Props) {
         onStart={() => setIsInteracting(true)}
         onEnd={() => setIsInteracting(false)}
         onChange={() => {
-          const cam = controlsRef.current?.object;
-          globeRef.current?.setPointOfView?.(cam);
+          const cam = controlsRef.current?.object
+          globeRef.current?.setPointOfView?.(cam)
         }}
       />
 
@@ -151,7 +165,6 @@ function SceneContent({ pins, onPinSelect }: Props) {
             ringRepeatPeriod={800}
             onClick={(layer: string, elementData: any) => handleClick(layer, elementData)}
           />
-
           <CloudsLayer
             radius={globeRadius}
             textureUrl={textureUrls.earthCloudsUrl}
@@ -162,25 +175,29 @@ function SceneContent({ pins, onPinSelect }: Props) {
         </group>
       )}
     </>
-  );
+  )
 }
 
 export function GlobeScene(props: Props) {
-  const preset = useGlobePreset();
+  const preset = useGlobePreset()
 
   return (
     <Canvas
       camera={{ position: [0, 0, preset.cameraZ], fov: preset.fov }}
       dpr={preset.dpr}
       gl={{ antialias: true, alpha: true }}
+      onCreated={({ gl }) => {
+        // Clear to transparent so only the sky/background layers show.
+        gl.setClearColor(0x000000, 0)
+      }}
     >
       <SceneContent {...props} />
     </Canvas>
-  );
+  )
 }
 
 function hashString(s: string) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return h;
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return h
 }
