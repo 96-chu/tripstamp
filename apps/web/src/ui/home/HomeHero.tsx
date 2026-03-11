@@ -1,4 +1,3 @@
-import React from 'react'
 import { landingMock } from './landingMock'
 import { HomeInfoCard } from './HomeInfoCard'
 
