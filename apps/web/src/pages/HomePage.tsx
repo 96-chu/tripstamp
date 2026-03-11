@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
 import { GlobeScene } from '../scene/GlobeScene'
 import type { TripPin } from '../scene/data/samplePins'
