@@ -8,7 +8,6 @@ type Props = {
 }
 
 export function ShootingStars({ radius = 850, chancePerSecond = 0.08 }: Props) {
-  const lineRef = useRef<THREE.Line>(null)
   const stateRef = useRef({
     active: false,
     t: 0,
@@ -33,8 +32,11 @@ export function ShootingStars({ radius = 850, chancePerSecond = 0.08 }: Props) {
     })
   }, [])
 
+  const line = useMemo<THREE.Line>(() => {
+    return new THREE.Line(geometry, material)
+  }, [geometry, material])
+
   function spawn() {
-    // Generate a short segment on a sphere shell.
     const theta = Math.random() * Math.PI * 2
     const phi = Math.random() * Math.PI * 0.7 + Math.PI * 0.15
 
@@ -42,7 +44,12 @@ export function ShootingStars({ radius = 850, chancePerSecond = 0.08 }: Props) {
     const y = radius * Math.cos(phi)
     const z = radius * Math.sin(phi) * Math.sin(theta)
 
-    const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.2, Math.random() - 0.5).normalize()
+    const dir = new THREE.Vector3(
+      Math.random() - 0.5,
+      Math.random() - 0.2,
+      Math.random() - 0.5
+    ).normalize()
+
     const len = 60 + Math.random() * 80
 
     stateRef.current.a.set(x, y, z)
@@ -58,27 +65,22 @@ export function ShootingStars({ radius = 850, chancePerSecond = 0.08 }: Props) {
   }
 
   useFrame((_, delta) => {
-    if (!lineRef.current) return
-
     const st = stateRef.current
 
-    // Spawn occasionally based on chance per second.
     if (!st.active && Math.random() < chancePerSecond * delta) spawn()
-
     if (!st.active) return
 
     st.t += delta
     const p = Math.min(st.t / st.duration, 1)
+    const fade = p < 0.2 ? p / 0.2 : 1 - (p - 0.2) / 0.8
 
-    // Fade in quickly then fade out.
-    const fade = p < 0.2 ? p / 0.2 : 1 - (p - 0.2) / 0.8;
-    (lineRef.current.material as THREE.LineBasicMaterial).opacity = Math.max(0, Math.min(1, fade))
+      ; (line.material as THREE.LineBasicMaterial).opacity = Math.max(0, Math.min(1, fade))
 
     if (p >= 1) {
-      st.active = false;
-      (lineRef.current.material as THREE.LineBasicMaterial).opacity = 0
+      st.active = false
+        ; (line.material as THREE.LineBasicMaterial).opacity = 0
     }
   })
 
-  return <line ref={lineRef} geometry={geometry} material={material} />
+  return <primitive object={line} />
 }
