@@ -230,3 +230,12 @@ pnpm typecheck
 ## License
 
 MIT
+
+## Textures / Assets Attribution
+
+The globe and related space texture resources used in TripStamp are referenced from:
+
+- Solar System Scope Textures  
+  https://www.solarsystemscope.com/textures/
+
+All rights to these assets belong to their original creators. Please review the source site's license and usage policy before commercial use or redistribution.
