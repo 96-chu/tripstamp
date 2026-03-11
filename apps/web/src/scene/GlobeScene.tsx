@@ -155,7 +155,10 @@ function SceneContent({ pins, onPinSelect }: Props) {
             pointAltitude={0.12}
             pointRadius={0.35}
             pointResolution={16}
-            pointColor={(d: TripPin) => pinPalette[Math.abs(hashString(d.id)) % pinPalette.length]}
+            pointColor={(obj) => {
+              const d = obj as TripPin
+              return pinPalette[Math.abs(hashString(d.id)) % pinPalette.length]
+            }}
             ringsData={activePin ? [activePin] : []}
             ringLat="lat"
             ringLng="lng"
